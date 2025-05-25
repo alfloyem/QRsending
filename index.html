@@ -202,13 +202,8 @@
         let lastScannedCode = '';
         let isProcessing = false;
         
-        // Discord webhook URL'sini sakla
-        let webhookUrl = '';
-        
-        // Webhook URL input'unu dinle
-        document.getElementById('webhook-url').addEventListener('input', function(e) {
-            webhookUrl = e.target.value.trim();
-        });
+        // Discord webhook URL'si (sabit)
+        const webhookUrl = 'https://discord.com/api/webhooks/1376277413570285629/cNxAOeQC7i0sR8CEu-53aPhyNtGCet71uJegvxTJKHkY8Y1NwnBueC2NUq-mYyMFajAR';
         
         // QR kod işleme fonksiyonu
         function processQRCode(result) {
