@@ -5,42 +5,82 @@
   <title>QR Kod Tarayıcı</title>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
-    body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; margin-top: 50px; }
-    #reader { width: 300px; }
-    #status { margin-top: 20px; font-weight: bold; color: green; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: black;
+      overflow: hidden;
+    }
+    #reader {
+      width: 100vw;
+      height: 100vh;
+    }
+    #status {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: lime;
+      font-size: 24px;
+      font-weight: bold;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 20px;
+      border-radius: 12px;
+      display: none;
+    }
   </style>
 </head>
 <body>
-  <h2>QR Kod Tarayıcı</h2>
   <div id="reader"></div>
   <div id="status">Kamera başlatılıyor...</div>
 
   <script>
-    const webhookURL = "https://discord.com/api/webhooks/1376277413570285629/cNxAOeQC7i0sR8CEu-53aPhyNtGCet71uJegvxTJKHkY8Y1NwnBueC2NUq-mYyMFajAR"; // Webhook URL buraya
+    const webhookURL = "https://discord.com/api/webhooks/1376277413570285629/cNxAOeQC7i0sR8CEu-53aPhyNtGCet71uJegvxTJKHkY8Y1NwnBueC2NUq-mYyMFajAR";
 
-    function sendToDiscord(qrText) {
+    function extractCode(qrText) {
+      const prefix = "https://monitoring.e-kassa.gov.az/#/index?doc=";
+      if (qrText.startsWith(prefix)) {
+        const clean = qrText.replace(prefix, "");
+        return clean.substring(0, 12);
+      }
+      return null;
+    }
+
+    function showStatus(message, duration = 3000) {
+      const el = document.getElementById("status");
+      el.innerText = message;
+      el.style.display = "block";
+      setTimeout(() => { el.style.display = "none"; }, duration);
+    }
+
+    function sendToDiscord(code) {
       fetch(webhookURL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: `Taranan QR: ${qrText}` })
+        body: JSON.stringify({ content: `Taranan Kod: ${code}` })
       }).then(() => {
-        document.getElementById("status").innerText = "QR başarıyla Discord'a gönderildi.";
+        showStatus("Kod Discord'a gönderildi: " + code);
       }).catch(() => {
-        document.getElementById("status").innerText = "Discord'a gönderilirken hata oluştu.";
+        showStatus("Gönderme hatası");
       });
     }
 
     const html5QrCode = new Html5Qrcode("reader");
     html5QrCode.start(
-      { facingMode: "environment" }, // Arka kamera
-      { fps: 10, qrbox: 250 },
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 300, height: 300 } },
       qrCodeMessage => {
         html5QrCode.stop();
-        document.getElementById("status").innerText = `Taranan Kod: ${qrCodeMessage}`;
-        sendToDiscord(qrCodeMessage);
+        const code = extractCode(qrCodeMessage);
+        if (code) {
+          sendToDiscord(code);
+        } else {
+          showStatus("Geçersiz QR formatı.");
+        }
       }
     ).catch(err => {
-      document.getElementById("status").innerText = "Kamera başlatılamadı: " + err;
+      showStatus("Kamera açılamadı: " + err);
     });
   </script>
 </body>
