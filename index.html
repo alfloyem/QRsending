@@ -1,87 +1,342 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <title>QR Kod Tarayıcı</title>
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      background: black;
-      overflow: hidden;
-    }
-    #reader {
-      width: 100vw;
-      height: 100vh;
-    }
-    #status {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: lime;
-      font-size: 24px;
-      font-weight: bold;
-      background: rgba(0, 0, 0, 0.7);
-      padding: 20px;
-      border-radius: 12px;
-      display: none;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Kod Okuyucu</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qr-scanner/1.4.2/qr-scanner.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #000;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        
+        #video-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #qr-video {
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+        }
+        
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .scan-frame {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 250px;
+            height: 250px;
+            border: 2px solid #00ff00;
+            border-radius: 12px;
+            background: rgba(0, 255, 0, 0.1);
+        }
+        
+        .scan-corners {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+        }
+        
+        .scan-corners::before,
+        .scan-corners::after {
+            content: '';
+            position: absolute;
+            background: #00ff00;
+        }
+        
+        .scan-corners::before {
+            width: 20px;
+            height: 3px;
+        }
+        
+        .scan-corners::after {
+            width: 3px;
+            height: 20px;
+        }
+        
+        .corner-tl {
+            top: -15px;
+            left: -15px;
+        }
+        
+        .corner-tl::before { top: 0; left: 0; }
+        .corner-tl::after { top: 0; left: 0; }
+        
+        .corner-tr {
+            top: -15px;
+            right: -15px;
+        }
+        
+        .corner-tr::before { top: 0; right: 0; }
+        .corner-tr::after { top: 0; right: 0; }
+        
+        .corner-bl {
+            bottom: -15px;
+            left: -15px;
+        }
+        
+        .corner-bl::before { bottom: 0; left: 0; }
+        .corner-bl::after { bottom: 0; left: 0; }
+        
+        .corner-br {
+            bottom: -15px;
+            right: -15px;
+        }
+        
+        .corner-br::before { bottom: 0; right: 0; }
+        .corner-br::after { bottom: 0; right: 0; }
+        
+        #status {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 16px;
+            z-index: 20;
+            text-align: center;
+        }
+        
+        #discord-config {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            color: white;
+            z-index: 20;
+            max-width: 300px;
+        }
+        
+        #discord-config input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 12px;
+        }
+        
+        #discord-config input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .success-flash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 255, 0, 0.3);
+            z-index: 15;
+            opacity: 0;
+            pointer-events: none;
+            animation: flash 0.5s ease-out;
+        }
+        
+        @keyframes flash {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+    </style>
 </head>
 <body>
-  <div id="reader"></div>
-  <div id="status">Kamera başlatılıyor...</div>
+    <div id="video-container">
+        <video id="qr-video" playsinline></video>
+    </div>
+    
+    <div id="overlay">
+        <div class="scan-frame">
+            <div class="scan-corners corner-tl"></div>
+            <div class="scan-corners corner-tr"></div>
+            <div class="scan-corners corner-bl"></div>
+            <div class="scan-corners corner-br"></div>
+        </div>
+    </div>
+    
+    <div id="status">QR kod aranıyor...</div>
+    
+    <div id="discord-config">
+        <div style="font-size: 14px; margin-bottom: 10px;">Discord Ayarları</div>
+        <input type="text" id="webhook-url" placeholder="Discord Webhook URL'si" />
+        <div style="font-size: 12px; margin-top: 5px; opacity: 0.8;">
+            Discord sunucunuzda bir webhook oluşturun ve URL'yi buraya yapıştırın
+        </div>
+    </div>
 
-  <script>
-    const webhookURL = "https://discord.com/api/webhooks/1376277413570285629/cNxAOeQC7i0sR8CEu-53aPhyNtGCet71uJegvxTJKHkY8Y1NwnBueC2NUq-mYyMFajAR";
-
-    function extractCode(qrText) {
-      const prefix = "https://monitoring.e-kassa.gov.az/#/index?doc=";
-      if (qrText.startsWith(prefix)) {
-        const clean = qrText.replace(prefix, "");
-        return clean.substring(0, 12);
-      }
-      return null;
-    }
-
-    function showStatus(message, duration = 3000) {
-      const el = document.getElementById("status");
-      el.innerText = message;
-      el.style.display = "block";
-      setTimeout(() => { el.style.display = "none"; }, duration);
-    }
-
-    function sendToDiscord(code) {
-      fetch(webhookURL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: `Taranan Kod: ${code}` })
-      }).then(() => {
-        showStatus("Kod Discord'a gönderildi: " + code);
-      }).catch(() => {
-        showStatus("Gönderme hatası");
-      });
-    }
-
-    const html5QrCode = new Html5Qrcode("reader");
-    html5QrCode.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 300, height: 300 } },
-      qrCodeMessage => {
-        html5QrCode.stop();
-        const code = extractCode(qrCodeMessage);
-        if (code) {
-          sendToDiscord(code);
-        } else {
-          showStatus("Geçersiz QR formatı.");
+    <script>
+        let qrScanner;
+        let lastScannedCode = '';
+        let isProcessing = false;
+        
+        // Discord webhook URL'sini sakla
+        let webhookUrl = '';
+        
+        // Webhook URL input'unu dinle
+        document.getElementById('webhook-url').addEventListener('input', function(e) {
+            webhookUrl = e.target.value.trim();
+        });
+        
+        // QR kod işleme fonksiyonu
+        function processQRCode(result) {
+            if (isProcessing || result === lastScannedCode) return;
+            
+            isProcessing = true;
+            lastScannedCode = result;
+            
+            // Regex ile URL kısmını kaldır
+            const urlPattern = /https:\/\/monitoring\.e-kassa\.gov\.az\/#\/index\?doc=/;
+            let processedCode = result.replace(urlPattern, '');
+            
+            // İlk 12 karakteri al
+            processedCode = processedCode.substring(0, 12);
+            
+            // Status güncelle
+            document.getElementById('status').textContent = `Kod bulundu: ${processedCode}`;
+            
+            // Başarı efekti
+            const flash = document.createElement('div');
+            flash.className = 'success-flash';
+            document.body.appendChild(flash);
+            setTimeout(() => flash.remove(), 500);
+            
+            // Discord'a gönder
+            sendToDiscord(processedCode);
+            
+            // 3 saniye sonra tekrar taramaya başla
+            setTimeout(() => {
+                isProcessing = false;
+                lastScannedCode = '';
+                document.getElementById('status').textContent = 'QR kod aranıyor...';
+            }, 3000);
         }
-      }
-    ).catch(err => {
-      showStatus("Kamera açılamadı: " + err);
-    });
-  </script>
+        
+        // Discord'a mesaj gönderme fonksiyonu
+        async function sendToDiscord(code) {
+            if (!webhookUrl) {
+                console.log('Discord webhook URL belirtilmemiş');
+                return;
+            }
+            
+            try {
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        content: `🎯 **QR Kod Tarandı**\n\`\`\`${code}\`\`\``,
+                        embeds: [{
+                            title: "QR Kod Sonucu",
+                            description: `Taranan kod: **${code}**`,
+                            color: 0x00ff00,
+                            timestamp: new Date().toISOString(),
+                            footer: {
+                                text: "QR Kod Okuyucu"
+                            }
+                        }]
+                    })
+                });
+                
+                if (response.ok) {
+                    console.log('Discord\'a başarıyla gönderildi:', code);
+                } else {
+                    console.error('Discord\'a gönderilemedi:', response.status);
+                }
+            } catch (error) {
+                console.error('Discord\'a gönderme hatası:', error);
+            }
+        }
+        
+        // QR Scanner başlat
+        async function startScanner() {
+            try {
+                const videoElem = document.getElementById('qr-video');
+                
+                qrScanner = new QrScanner(
+                    videoElem,
+                    result => processQRCode(result.data),
+                    {
+                        onDecodeError: err => {
+                            // Sessizce geç, sürekli hata gösterme
+                        },
+                        highlightScanRegion: false,
+                        highlightCodeOutline: false,
+                        maxScansPerSecond: 5,
+                        preferredCamera: 'back'
+                    }
+                );
+                
+                await qrScanner.start();
+                document.getElementById('status').textContent = 'QR kod aranıyor...';
+                
+            } catch (error) {
+                console.error('Kamera başlatılamadı:', error);
+                document.getElementById('status').textContent = 'Kamera erişimi reddedildi!';
+            }
+        }
+        
+        // Sayfa yüklendiğinde başlat
+        window.addEventListener('load', startScanner);
+        
+        // Sayfa kapatılırken temizle
+        window.addEventListener('beforeunload', () => {
+            if (qrScanner) {
+                qrScanner.stop();
+                qrScanner.destroy();
+            }
+        });
+        
+        // Tam ekran için escape tuşunu dinle
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                if (document.fullscreenElement) {
+                    document.exitFullscreen();
+                }
+            }
+        });
+        
+        // Otomatik tam ekran (kullanıcı etkileşimi gerekebilir)
+        document.addEventListener('click', function() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log('Tam ekran modu açılamadı:', err);
+                });
+            }
+        });
+    </script>
 </body>
 </html>
