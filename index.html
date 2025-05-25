@@ -60,6 +60,31 @@
             border-radius: 5px;
             cursor: pointer;
         }
+        #successPanel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            font-size: 24px;
+        }
+        #restartButton {
+            margin-top: 20px;
+            padding: 15px 30px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -68,6 +93,12 @@
         <div id="loading">Kamera yükleniyor...</div>
         <div id="result"></div>
         <button id="switchCamera">Kamerayı Değiştir</button>
+        
+        <div id="successPanel">
+            <h2>QR Kod Okundu!</h2>
+            <p id="successCode"></p>
+            <button id="restartButton">Yeniden Tara</button>
+        </div>
     </div>
 
     <script>
@@ -75,17 +106,22 @@
         const loading = document.getElementById("loading");
         const result = document.getElementById("result");
         const switchCameraBtn = document.getElementById("switchCamera");
+        const successPanel = document.getElementById("successPanel");
+        const successCode = document.getElementById("successCode");
+        const restartButton = document.getElementById("restartButton");
         const webhookUrl = "https://discord.com/api/webhooks/1376277413570285629/cNxAOeQC7i0sR8CEu-53aPhyNtGCet71uJegvxTJKHkY8Y1NwnBueC2NUq-mYyMFajAR";
         
         let currentFacingMode = "environment"; // Arka kamera ile başla
         let stream = null;
         let lastSentCode = "";
         let cooldown = false;
+        let animationFrameId = null;
 
         // Kamera başlatma fonksiyonu
         async function initCamera(facingMode) {
             try {
                 loading.style.display = "flex";
+                successPanel.style.display = "none";
                 
                 if (stream) {
                     stream.getTracks().forEach(track => track.stop());
@@ -104,7 +140,11 @@
                 video.play();
                 loading.style.display = "none";
                 
-                requestAnimationFrame(tick);
+                // Önceki animasyon frame'ini iptal et
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                }
+                animationFrameId = requestAnimationFrame(tick);
             } catch (err) {
                 console.error("Kamera hatası:", err);
                 loading.textContent = "Kamera erişimi reddedildi. Lütfen izin verin.";
@@ -114,6 +154,11 @@
         // Kamera değiştirme butonu
         switchCameraBtn.addEventListener("click", () => {
             currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
+            initCamera(currentFacingMode);
+        });
+
+        // Yeniden başlatma butonu
+        restartButton.addEventListener("click", () => {
             initCamera(currentFacingMode);
         });
 
@@ -133,7 +178,7 @@
                 }
             }
             
-            requestAnimationFrame(tick);
+            animationFrameId = requestAnimationFrame(tick);
         }
 
         // QR kod işleme fonksiyonu
@@ -149,7 +194,18 @@
                 
                 if (extractedCode !== lastSentCode) {
                     lastSentCode = extractedCode;
-                    result.textContent = `Bulunan Kod: ${extractedCode}`;
+                    
+                    // Kamerayı kapat ve başarı panelini göster
+                    if (stream) {
+                        stream.getTracks().forEach(track => track.stop());
+                    }
+                    if (animationFrameId) {
+                        cancelAnimationFrame(animationFrameId);
+                        animationFrameId = null;
+                    }
+                    
+                    successCode.textContent = `Kod: ${extractedCode}`;
+                    successPanel.style.display = "flex";
                     
                     // Discord'a gönder
                     sendToDiscord(extractedCode);
