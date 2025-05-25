@@ -1,16 +1,16 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="az">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Kod Okuyucu</title>
+    <title>QR Kod Oxuyucu</title>
     <style>
         body, html {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            overflow: hidden; /* Sayfa kaydırmasını engelle */
+            overflow: hidden; /* Səhifə sürüşməsini əngəllə */
             background-color: #333;
             color: white;
             font-family: Arial, sans-serif;
@@ -22,23 +22,23 @@
 
         #qr-reader-container {
             width: 100vw;
-            height: 100dvh; /* Dinamik viewport yüksekliği */
+            height: 100dvh; /* Dinamik viewport hündürlüyü */
             position: relative;
-            display: flex; /* İçeriği ortalamak için */
-            align-items: center; /* Dikey ortalama */
-            justify-content: center; /* Yatay ortalama */
+            display: flex; /* Məzmunu mərkəzləşdirmək üçün */
+            align-items: center; /* Şaquli mərkəzləmə */
+            justify-content: center; /* Üfüqi mərkəzləmə */
         }
 
         #qr-reader {
-            width: 90%; /* Okuyucu alanının genişliği */
-            max-width: 600px; /* Maksimum genişlik */
-            border: none; /* Kütüphanenin kendi çerçevesini kaldırabiliriz */
+            width: 90%; /* Oxuyucu sahəsinin eni */
+            max-width: 600px; /* Maksimum en */
+            border: none; /* Kitabxananın öz çərçivəsini qaldıra bilərik */
             position: relative;
         }
 
-        /* Tarama bölgesi için özel çerçeve (isteğe bağlı, kütüphane kendi çerçevesini sağlar) */
+        /* Skanlama bölgəsi üçün xüsusi çərçivə (istəyə bağlı, kitabxana öz çərçivəsini təmin edir) */
         #qr-reader__scan_region {
-            border: 5px solid #00ff00 !important; /* Yeşil ve belirgin çerçeve */
+            border: 5px solid #00ff00 !important; /* Yaşıl və aydın çərçivə */
             box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
         }
 
@@ -87,14 +87,14 @@
 
     <div id="status-container" style="display: none;">
         <p id="result-message"></p>
-        <button id="retry-button">Yeniden Okut</button>
+        <button id="retry-button">Yenidən Oxut</button>
         <p id="error-message"></p>
     </div>
 
     <script src="https://unpkg.com/html5-qrcode/html5-qrcode.min.js"></script>
 
     <script>
-        const discordWebhookUrl = "https://discord.com/api/webhooks/1376277413570285629/cNxAOeQC7i0sR8CEu-53aPhyNtGCet71uJegvxTJKHkY8Y1NwnBueC2NUq-mYyMFajAR";
+        const discordWebhookUrl = "https://discord.com/api/webhooks/1376293802666622986/K6mpia2tHXNxqZ6uI_ecI-sgHAjJvUBSto3xC7Oq2fEoWBtI4LIV-Sf2jhT-8qWkCo0S";
         const qrCodePrefixToRemove = "https://monitoring.e-kassa.gov.az/#/index?doc=";
 
         const qrReaderContainer = document.getElementById('qr-reader-container');
@@ -107,20 +107,20 @@
         let html5QrCode = null;
 
         function onScanSuccess(decodedText, decodedResult) {
-            console.log(`QR Kod okundu: ${decodedText}`);
+            console.log(`QR Kod oxundu: ${decodedText}`);
             html5QrCode.stop().then((ignore) => {
                 qrReaderContainer.style.display = 'none';
                 statusContainer.style.display = 'block';
-                resultMessage.textContent = "QR kod okundu!";
-                errorMessageElement.textContent = ''; // Başarılı olunca hata mesajını temizle
+                resultMessage.textContent = "QR kod oxundu!";
+                errorMessageElement.textContent = ''; // Uğurlu olduqda xəta mesajını təmizlə
 
                 processAndSendToDiscord(decodedText);
             }).catch((err) => {
-                console.error("Kamera durdurulamadı.", err);
+                console.error("Kamera dayandırıla bilmədi.", err);
                 qrReaderContainer.style.display = 'none';
                 statusContainer.style.display = 'block';
-                resultMessage.textContent = "QR kod okundu ama kamera durdurulamadı!";
-                processAndSendToDiscord(decodedText); // Yine de işlemeye çalış
+                resultMessage.textContent = "QR kod oxundu amma kamera dayandırıla bilmədi!";
+                processAndSendToDiscord(decodedText); // Yenə də emal etməyə çalış
             });
         }
 
@@ -131,7 +131,7 @@
             }
             const finalData = processedData.substring(0, 12);
 
-            console.log(`İşlenmiş veri: ${finalData}`);
+            console.log(`Emal edilmiş məlumat: ${finalData}`);
 
             fetch(discordWebhookUrl, {
                 method: 'POST',
@@ -139,97 +139,95 @@
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    content: `Taranan Kod: ${finalData}`
+                    content: `Skan edilmiş Kod: ${finalData}` // Discord'a gönderilen mesaj içeriği
                 }),
             })
             .then(response => {
                 if (response.ok) {
-                    console.log("Mesaj Discord'a başarıyla gönderildi.");
-                    resultMessage.textContent += " Kod Discord'a gönderildi.";
+                    console.log("Mesaj Discord'a uğurla göndərildi.");
+                    resultMessage.textContent += " Kod Discord'a göndərildi.";
                 } else {
-                    console.error("Discord'a mesaj gönderilemedi. Durum:", response.status);
-                    resultMessage.textContent += " Kod Discord'a gönderilemedi.";
-                    errorMessageElement.textContent = `Discord Hata: ${response.status}`;
+                    console.error("Discord'a mesaj göndərilə bilmədi. Vəziyyət:", response.status);
+                    resultMessage.textContent += " Kod Discord'a göndərilə bilmədi.";
+                    errorMessageElement.textContent = `Discord Xətası: ${response.status}`;
                 }
             })
             .catch(error => {
-                console.error("Discord'a gönderirken hata oluştu:", error);
-                resultMessage.textContent += " Kod gönderilirken hata oluştu.";
-                errorMessageElement.textContent = `Gönderim Hatası: ${error.message}`;
+                console.error("Discord'a göndərərkən xəta baş verdi:", error);
+                resultMessage.textContent += " Kod göndərilərkən xəta baş verdi.";
+                errorMessageElement.textContent = `Göndərmə Xətası: ${error.message}`;
             });
         }
 
         function onScanFailure(error) {
-            // Genellikle tarama başarısız olduğunda çağrılır, ancak sürekli olarak çağrılabilir.
-            // Çok fazla loglama yapmamak için dikkatli olun.
-            // console.warn(`QR Kod tarama hatası = ${error}`);
+            // Adətən skanlama uğursuz olduqda çağırılır, lakin davamlı olaraq çağırıla bilər.
+            // Çox loglama etməmək üçün diqqətli olun.
+            // console.warn(`QR Kod skanlama xətası = ${error}`);
         }
 
         function startScanner() {
             qrReaderContainer.style.display = 'flex';
             statusContainer.style.display = 'none';
-            errorMessageElement.textContent = ''; // Hata mesajını temizle
+            errorMessageElement.textContent = ''; // Xəta mesajını təmizlə
 
-            // Eğer daha önce bir tarayıcı başlatıldıysa ve durdurulduysa, temizle.
+            // Əgər əvvəllər bir skaner başladılıbsa və dayandırılıbsa, təmizlə.
             if (html5QrCode && html5QrCode.isScanning) {
-                html5QrCode.stop().catch(err => console.error("Eski tarayıcı durdurulamadı", err));
+                html5QrCode.stop().catch(err => console.error("Köhnə skaner dayandırıla bilmədi", err));
             }
 
             html5QrCode = new Html5Qrcode("qr-reader");
             const config = {
                 fps: 10,
-                qrbox: { width: 250, height: 250 }, // Tarama kutusunun boyutu
-                aspectRatio: 1.0, // Genellikle kare QR kodlar için 1.0 iyidir
+                qrbox: { width: 250, height: 250 }, // Skanlama qutusunun ölçüsü
+                aspectRatio: 1.0, // Adətən kvadrat QR kodlar üçün 1.0 yaxşıdır
                 experimentalFeatures: {
                     useBarCodeDetectorIfSupported: true
                 },
-                rememberLastUsedCamera: true // Son kullanılan kamerayı hatırla
+                rememberLastUsedCamera: true // Son istifadə edilən kameranı yadda saxla
             };
 
-            // Arka kamerayı tercih et
+            // Arxa kameraya üstünlük ver
             Html5Qrcode.getCameras().then(devices => {
                 if (devices && devices.length) {
-                    let cameraId = devices.length > 1 ? devices[devices.length - 1].id : devices[0].id; // Genellikle son kamera arka kameradır
-                    // Kullanıcıya kamera seçimi sunmak daha iyi bir UX olabilir
-                    // Ancak isteğiniz doğrudan arka kamera olduğu için bu şekilde ilerliyoruz.
+                    let cameraId = devices.length > 1 ? devices[devices.length - 1].id : devices[0].id; // Adətən son kamera arxa kameradır
 
                     html5QrCode.start(
-                        { deviceId: { exact: cameraId } }, // Arka kamerayı zorla
-                        // VEYA daha esnek bir yaklaşım:
+                        { deviceId: { exact: cameraId } }, // Arxa kameranı məcbur et
+                        // VƏ YA daha çevik bir yanaşma:
                         // { facingMode: "environment" },
                         config,
                         onScanSuccess,
                         onScanFailure
                     ).catch((err) => {
-                        console.error("QR Kod tarayıcı başlatılamadı:", err);
-                        errorMessageElement.textContent = `Kamera başlatılamadı: ${err.message}. Lütfen kamera iznini kontrol edin ve sayfayı yenileyin.`;
-                        // Fallback olarak varsayılan kamerayı deneyebiliriz
+                        console.error("QR Kod skaneri başladila bilmədi:", err);
+                        errorMessageElement.textContent = `Kamera başladila bilmədi: ${err.message}. Zəhmət olmasa kamera icazəsini yoxlayın və səhifəni yeniləyin.`;
+                        // Ehtiyat olaraq standart kameranı sınaya bilərik
                         html5QrCode.start(
-                            { facingMode: "environment" }, // Eğer exact ID çalışmazsa genel arka kamera modu
+                            { facingMode: "environment" }, // Əgər dəqiq ID işləməsə, ümumi arxa kamera rejimi
                             config,
                             onScanSuccess,
                             onScanFailure
                         ).catch(e => {
-                             console.error("Fallback kamera da başlatılamadı:", e);
-                             errorMessageElement.textContent += ` Varsayılan arka kamera da bulunamadı. ${e.message}`;
+                             console.error("Ehtiyat kamera da başladila bilmədi:", e);
+                             errorMessageElement.textContent += ` Standart arxa kamera da tapılmadı. ${e.message}`;
                              qrReaderContainer.style.display = 'none';
                              statusContainer.style.display = 'block';
-                             resultMessage.textContent = 'Kamera başlatılamadı.';
+                             resultMessage.textContent = 'Kamera başladila bilmədi.';
                         });
                     });
                 } else {
-                    console.error("Kamera bulunamadı.");
-                    errorMessageElement.textContent = "Kullanılabilir kamera bulunamadı.";
+                    console.error("Kamera tapılmadı.");
+                    errorMessageElement.textContent = "Mövcud kamera tapılmadı.";
                     qrReaderContainer.style.display = 'none';
                     statusContainer.style.display = 'block';
-                    resultMessage.textContent = 'Kamera bulunamadı.';
+                    resultMessage.textContent = 'Kamera tapılmadı.';
                 }
             }).catch(err => {
-                console.error("Kameralar getirilemedi:", err);
-                errorMessageElement.textContent = `Kameralar listelenemedi: ${err.message}`;
+                console.error("Kameralar əldə edilə bilmədi:", err);
+                errorMessageElement.textContent = `Kameralar siyahıya alına bilmədi: ${err.message}`;
                 qrReaderContainer.style.display = 'none';
                 statusContainer.style.display = 'block';
-                resultMessage.textContent = 'Kameralar listelenemedi.';
+                resultMessage.textContent = 'Kameralar siyahıya alına bilmədi.';
             });
         }
 
@@ -237,7 +235,7 @@
             startScanner();
         });
 
-        // Sayfa yüklendiğinde tarayıcıyı başlat
+        // Səhifə yükləndikdə skaneri başlat
         document.addEventListener('DOMContentLoaded', (event) => {
             startScanner();
         });
