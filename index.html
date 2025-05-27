@@ -139,7 +139,7 @@
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    content: `Skan edilmiş Kod: ${finalData}` // Discord'a gönderilen mesaj içeriği
+                    content: `${finalData}` // Discord'a gönderilen mesaj içeriği
                 }),
             })
             .then(response => {
